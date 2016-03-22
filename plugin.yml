@@ -1,0 +1,13 @@
+name: TelegramSupport
+main: net.Animes4Me.Spigot.Plugin
+version: 2.0
+author: undeaD_D
+website: https://www.spigotmc.org/resources/bungeetelegramsupport.19245/
+database: false
+
+commands:
+  support:
+    description: TelegramSupport main command
+    aliases: [sup]
+    permission: TelegramSupport.perm.support.help
+    usage: Syntax error! Use /support <subcommand>
