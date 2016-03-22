@@ -1,141 +1,107 @@
 package net.Animes4Me.Spigot;
-	import java.util.Arrays;
-	import java.util.List;
-	import org.bukkit.ChatColor;
-	import org.bukkit.command.Command;
-	import org.bukkit.command.CommandExecutor;
-	import org.bukkit.command.CommandSender;
-	import org.bukkit.command.TabExecutor;
-	import org.bukkit.entity.Player;
-	import org.bukkit.event.EventHandler;
-	import org.bukkit.event.Listener;
-	import org.bukkit.event.player.AsyncPlayerChatEvent;
+	import java.io.IOException;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
 
-	public class SupportCommand implements CommandExecutor, Listener, TabExecutor {
-		private List<String> list;
+import net.Animes4Me.Utils.Telegram;
+import net.Animes4Me.Utils.Telegram.TelegramHandler;
+
+import org.bukkit.ChatColor;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
+
+import com.pengrad.telegrambot.model.Update;
+
+	public class Plugin extends org.bukkit.plugin.java.JavaPlugin implements TelegramHandler {
+		protected static Plugin instance; 
+		protected FileConfiguration config;
+		protected Telegram telegram;
+		protected ArrayList<Player> supportchat;
+		protected boolean isrunning = true;
+		protected SupportCommand cmd;
 		
-		public SupportCommand() {
-			list = Arrays.asList("join", "leave", "help", "forward", "toggle", "reload", "info", "version", "author", "");
-			Plugin.instance.getServer().getPluginManager().registerEvents(this, Plugin.instance);
+		public void onEnable(){
+			instance = this;
+			
+			try{
+				loadConfig();
+				System.out.println(ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&',getConfig_String("messages.prefix") + getConfig_String("messages.config_loaded"))));
+			}catch(NullPointerException | IOException ex){
+				System.err.println(ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&',getConfig_String("messages.prefix") + getConfig_String("messages.config_load_error"))));
+				ex.printStackTrace();
+			}
+			
+			System.out.println(ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&',getConfig_String("messages.prefix") + getConfig_String("messages.spigot"))));
+			
+			try {
+		        Metrics metrics = new Metrics(this);
+		        metrics.start();
+		    } catch (IOException ex) {
+		    	System.err.println(ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&',getConfig_String("messages.prefix") + getConfig_String("messages.metrics_error"))));
+		    	ex.printStackTrace();
+		    }
+			
+			supportchat = new ArrayList<Player>();
+			cmd = new SupportCommand();
+			getCommand("support").setExecutor(cmd);
+			getCommand("support").setTabCompleter(cmd);
+			
+			try {
+				telegram = new Telegram(config.getString("token"), this);
+				getServer().getScheduler().runTaskAsynchronously(this, telegram);
+		    } catch (IllegalArgumentException ex) {
+		    	System.err.println(ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&',getConfig_String("messages.prefix") + getConfig_String("messages.telegram_config_error"))));
+		    } catch (SecurityException ex) {
+		    	System.err.println(ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&',getConfig_String("messages.prefix") + getConfig_String("messages.spigot_update_available"))));
+		    } catch (MalformedURLException ex) {
+		    	System.err.println(ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&',getConfig_String("messages.prefix") + getConfig_String("messages.spigot_update_api_error"))));	
+			} catch (Exception e) {
+				System.err.println(ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&',getConfig_String("messages.prefix") + getConfig_String("messages.telegram_api_error"))));
+				e.printStackTrace();
+			}
+		}
+	
+		private void loadConfig() throws IOException {
+			config = getConfig();
+			config.options().copyDefaults(true);
+			saveConfig();
 		}
 	
 		@Override
-		public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) { return list; }
+		public boolean isRunning() { return isrunning; }
 
-		public void sendMessage(Player p, String msg) {
-			p.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
-		}
+		@Override
+		public String getVersion() { return getDescription().getVersion(); }
 		
 		@Override
-		public boolean onCommand(CommandSender sender, Command cmd, String alias, String[] args) {
-			if(sender instanceof Player){
-				Player p = (Player) sender;
-				
-				if(args.length == 1){
-					switch(args[0].toLowerCase()){
-						case "join":
-							if(p.hasPermission("telegramsupport.join")){
-								Plugin.instance.supportchat.add(p);
-								sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.support_join"));
-							}else{
-								sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.no_perm"));
-							}
-							break;
-						case "leave":
-							if(p.hasPermission("telegramsupport.leave")){
-								Plugin.instance.supportchat.remove(p);
-								sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.support_left"));
-							}else{
-								sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.no_perm"));
-							}
-							break;
-						case "toggle":
-							if(p.hasPermission("telegramsupport.toggle")){
-								Plugin.instance.isrunning = false;
-								for(Player temp : Plugin.instance.getServer().getOnlinePlayers()){
-									if(temp.hasPermission("TelegramSupport.perm.support.toggle")){
-										sendMessage(temp, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.toggle_cmd"));
-									}
-								}
-							}else{
-								sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.no_perm"));
-							}
-							break;
-						case "forward":
-							if(p.hasPermission("telegramsupport.forward")){
-								Plugin.instance.config.set("forward", Plugin.instance.config.getBoolean("forward"));
-								for(Player temp : Plugin.instance.getServer().getOnlinePlayers()){
-									if(temp.hasPermission("TelegramSupport.perm.support.forward")){
-										sendMessage(temp, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.forward_cmd"));
-									}
-								}
-							}else{
-								sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.no_perm"));
-							}
-							break;
-						case "reload":
-							if(p.hasPermission("telegramsupport.reload")){
-								try{
-									Plugin.instance.reloadConfig();
-									Plugin.instance.config = Plugin.instance.getConfig();
-									sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.reload_cmd"));
-								}catch(Exception ex){
-									System.err.println(ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&',Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.config_load_error"))));
-									ex.printStackTrace();
-								}
-							}else{
-								sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.no_perm"));
-							}
-							break;
-						case "info":
-						case "version":
-						case "author":
-							if(p.hasPermission("telegramsupport.help")){
-								sendMessage(p, "&8------ [&3TelegramSupport&8] ------");
-								sendMessage(p, "&3Author: &6undeaD_D");
-								sendMessage(p, "&3Version: &6" + Plugin.instance.getDescription().getVersion());
-								sendMessage(p, "&3Special thanks to: &6RoWe_ and Proklos");
-								sendMessage(p, "&6Library: Spigot");
-								sendMessage(p, "&6Copyright 2016 animes4me.net");
-								sendMessage(p, "&8-----------------------------");
-							}else{
-								sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.no_perm"));
-							}
-							break;
-						case "help":
-						default:
-							if(p.hasPermission("telegramsupport.help")){
-								for(String s : Plugin.instance.getConfig_StringList("messages.help_cmd")){
-									sendMessage(p, s);
-								}
-							}else{
-								sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.no_perm"));
-							}
-							break;
+		public void recieve(Update update) {
+			if(update.message().text().startsWith("/")){
+				String cmd = update.message().text().substring(1, update.message().text().length()).split(" ")[0].toLowerCase();
+				if(config.getString("permissions." + update.message().from().username() + "." + cmd) != null){
+					boolean result = getServer().dispatchCommand(getServer().getConsoleSender(), update.message().text().substring(1, update.message().text().length()));
+					if(result){
+						telegram.send(config.getString("messages.cmd_success").replace("<CMD>", update.message().text()));
+					}else{
+						telegram.send(config.getString("messages.cmd_error").replace("<CMD>", update.message().text()));
 					}
 				}else{
-					sendMessage(p, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.wrong_cmd"));
+					telegram.send(config.getString("messages.no_permission").replace("<USERNAME>", update.message().from().username()).replace("<CMD>", cmd));
 				}
-				
-			}
-			return true;
-		}
-
-		@EventHandler
-	    public void onChat(AsyncPlayerChatEvent e) {
-			if(Plugin.instance.supportchat.contains(e.getPlayer())){
-				if(!e.getMessage().startsWith("/")){
-					e.setCancelled(true);
-					
-					Plugin.instance.telegram.send(e.getPlayer().getName() + ": " + e.getMessage());
-					
-					for(Player temp : Plugin.instance.supportchat){
-						sendMessage(temp, Plugin.instance.getConfig_String("messages.prefix") + e.getMessage());
-					}
+			}else{
+				for(Player p : supportchat){
+					cmd.sendMessage(p, "&8[&6" + update.message().from().username()+ "&8] &r" + update.message().text());
 				}
-			}else if((!e.getMessage().startsWith("/")) && Plugin.instance.config.getBoolean("forward")){
-				Plugin.instance.telegram.send(e.getPlayer().getName() + ": " + e.getMessage());
 			}
 		}
-
+	
+		@Override
+		public String getConfig_String(String key) { return config.getString(key); }
+	
+		@Override
+		public List<String> getConfig_StringList(String key) { return config.getStringList(key); }
+	
+		@Override
+		public long getChatID() { return config.getLong("chatid"); }
+	
 	}
