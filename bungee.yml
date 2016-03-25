@@ -1,6 +1,0 @@
-name: TelegramSupport
-main: net.Animes4Me.Proxy.Plugin
-version: 2.0
-author: undeaD_D
-website: https://www.spigotmc.org/resources/bungeetelegramsupport.19245/
-database: false
