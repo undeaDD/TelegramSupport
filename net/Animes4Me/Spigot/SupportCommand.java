@@ -63,7 +63,7 @@ package net.Animes4Me.Spigot;
 							break;
 						case "forward":
 							if(p.hasPermission("telegramsupport.forward")){
-								Plugin.instance.config.set("forward", Plugin.instance.config.getBoolean("forward"));
+								Plugin.instance.config.set("forward", !Plugin.instance.config.getBoolean("forward"));
 								for(Player temp : Plugin.instance.getServer().getOnlinePlayers()){
 									if(temp.hasPermission("TelegramSupport.perm.support.forward")){
 										sendMessage(temp, Plugin.instance.getConfig_String("messages.prefix") + Plugin.instance.getConfig_String("messages.forward_cmd"));
