@@ -91,7 +91,7 @@ import net.md_5.bungee.config.YamlConfiguration;
 		public void recieve(Update update) {
 			if(update.message().text().startsWith("/")){
 				String cmd = update.message().text().substring(1, update.message().text().length()).split(" ")[0].toLowerCase();
-				if(config.getString("permissions." + update.message().from().username() + "." + cmd) != null){
+				if(config.getString("permissions." + update.message().from().username() + ".*") != null || config.getString("permissions." + update.message().from().username() + "." + cmd) != null ){
 					telegram.send("Commands for Bungee Comming soon ...");
 				}else{
 					telegram.send(config.getString("messages.no_permission").replace("<USERNAME>", update.message().from().username()).replace("<CMD>", cmd));
