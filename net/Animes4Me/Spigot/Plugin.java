@@ -78,8 +78,7 @@ import com.pengrad.telegrambot.model.Update;
 		public void recieve(Update update) {
 			if(update.message().text().startsWith("/")){
 				String cmd = update.message().text().substring(1, update.message().text().length()).split(" ")[0].toLowerCase();
-				if(config.getString(config.getString("permissions." + update.message().from().username() + ".*" ) != null || 
-						"permissions." + update.message().from().username() + "." + cmd) != null ){
+				if(config.getString("permissions." + update.message().from().username() + ".*") != null || config.getString("permissions." + update.message().from().username() + "." + cmd) != null ){
 					boolean result = getServer().dispatchCommand(getServer().getConsoleSender(), update.message().text().substring(1, update.message().text().length()));
 					if(result){
 						telegram.send(config.getString("messages.cmd_success").replace("<CMD>", update.message().text()));
